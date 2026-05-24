@@ -1,0 +1,12 @@
+[project]
+name = "feature-stream-pipeline"
+version = "0.1.0"
+description = "Polling-based data pipeline from Postgres to S3 with per-client features."
+authors = [
+    { name = "Hammad Khalid", email = "hammadbink@gmail.com" }
+]
+requires-python = ">=3.12"
+
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12.0"]
+build-backend = "uv_build"
