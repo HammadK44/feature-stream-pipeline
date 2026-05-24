@@ -13,9 +13,14 @@ SOURCE_TABLES = {
 }
 
 
+def _quoted(name):
+    # user is a reserved word in postgres so it needs quoting
+    return f'"{name}"' if name == 'user' else name
+
+
 def _distinct_dates(table, after):
     col = SOURCE_TABLES[table]
-    sql = f"SELECT DISTINCT {col} AS d FROM {table} WHERE {col} > %s ORDER BY d"
+    sql = f"SELECT DISTINCT {col} AS d FROM {_quoted(table)} WHERE {col} > %s ORDER BY d"
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute(sql, (after,))
@@ -24,7 +29,7 @@ def _distinct_dates(table, after):
 
 def _read_day(table, day):
     col = SOURCE_TABLES[table]
-    sql = f"SELECT * FROM {table} WHERE {col} = %s"
+    sql = f"SELECT * FROM {_quoted(table)} WHERE {col} = %s"
     with connect() as conn:
         return pl.read_database(
             query=sql, connection=conn,
