@@ -25,7 +25,7 @@ def paid_loans_count(silver):
         .rename({'len': 'paid_loans_count'}))
 
 def days_since_last_late_payment(silver, today):
-    return (silver.filter(pl.col('payment_status') == 'late')
+    return (silver.filter((pl.col('payment_status') == 'late') & (pl.col('payment_created_on') <= today))
         .group_by('client_id')
         .agg(pl.col('payment_created_on').max().alias('last_late'))
         .with_columns((pl.lit(today) - pl.col('last_late')).dt.total_days().alias('days_since_last_late_payment'))
@@ -34,7 +34,8 @@ def days_since_last_late_payment(silver, today):
 def profit_in_last_90_days_rate(silver, today):
     window_start = today - timedelta(days=PROFIT_WINDOW_DAYS)
     recent = silver.filter((pl.col('loan_created_on') >= window_start) & (pl.col('loan_status').is_in(FUNDED_STATUSES)))
-    interest_per_loan = (recent.group_by('loan_id').agg(pl.col('interest').sum().alias('loan_interest')))
+    interest_per_loan = (recent.filter(pl.col('payment_created_on') <= today)
+        .group_by('loan_id').agg(pl.col('interest').sum().alias('loan_interest')))
     loans_per_client = (recent.group_by('loan_id', 'client_id', 'loan_amount').agg()
         .join(interest_per_loan, on='loan_id', how='left')
         .with_columns(pl.col('loan_interest').fill_null(0)))
