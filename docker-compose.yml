@@ -44,6 +44,7 @@ services:
   pipeline:
     build: .
     command: feat-stream loop
+    restart: unless-stopped
     environment:
       PYTHONUNBUFFERED: 1
       POSTGRES_HOST: postgres
@@ -68,6 +69,7 @@ services:
   api:
     build: .
     command: feat-stream serve
+    restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
