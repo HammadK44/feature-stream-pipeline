@@ -18,6 +18,11 @@ dependencies = [
     "typer>=0.12,<1.0",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=8.3,<9.0",
+]
+
 [project.scripts]
 feat-stream = "feat_stream.cli:app"
 
@@ -28,3 +33,7 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-name = "feat_stream"
 module-root = "src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
