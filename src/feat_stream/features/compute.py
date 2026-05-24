@@ -1,7 +1,10 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import polars as pl
 from feat_stream.config import settings
 from feat_stream.storage import s3
+
+FUNDED_STATUSES = ['active', 'paid', 'overdue']
+PROFIT_WINDOW_DAYS = 90
 
 def _read_silver(fs):
     key = f'{settings.s3_bucket_silver}/loan_payments/data.parquet'
@@ -28,6 +31,18 @@ def days_since_last_late_payment(silver, today):
         .with_columns((pl.lit(today) - pl.col('last_late')).dt.total_days().alias('days_since_last_late_payment'))
         .select('client_id', 'days_since_last_late_payment'))
 
+def profit_in_last_90_days_rate(silver, today):
+    window_start = today - timedelta(days=PROFIT_WINDOW_DAYS)
+    recent = silver.filter((pl.col('loan_created_on') >= window_start) & (pl.col('loan_status').is_in(FUNDED_STATUSES)))
+    interest_per_loan = (recent.group_by('loan_id').agg(pl.col('interest').sum().alias('loan_interest')))
+    loans_per_client = (recent.group_by('loan_id', 'client_id', 'loan_amount').agg()
+        .join(interest_per_loan, on='loan_id', how='left')
+        .with_columns(pl.col('loan_interest').fill_null(0)))
+    return (loans_per_client.group_by('client_id')
+        .agg(pl.col('loan_amount').sum().alias('sum_amount'), pl.col('loan_interest').sum().alias('sum_interest'))
+        .with_columns((pl.col('sum_interest') / pl.col('sum_amount')).alias('profit_in_last_90_days_rate'))
+        .select('client_id', 'profit_in_last_90_days_rate'))
+
 def build_gold():
     fs = s3.fs()
     silver = _read_silver(fs)
@@ -35,7 +50,8 @@ def build_gold():
     today = date.today()
     f1 = paid_loans_count(silver)
     f2 = days_since_last_late_payment(silver, today)
-    gold = (clients.join(f1, on='client_id', how='left').join(f2, on='client_id', how='left')
+    f3 = profit_in_last_90_days_rate(silver, today)
+    gold = (clients.join(f1, on='client_id', how='left').join(f2, on='client_id', how='left').join(f3, on='client_id', how='left')
         .with_columns(pl.col('paid_loans_count').fill_null(0)).with_columns(pl.lit(datetime.now()).alias('computed_at')))
     key = f'{settings.s3_bucket_gold}/client_features/data.parquet'
     with fs.open_output_stream(key) as out:
