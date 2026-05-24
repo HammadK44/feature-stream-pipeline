@@ -5,6 +5,7 @@ description = "Polling-based data pipeline from Postgres to S3 with per-client f
 authors = [
     { name = "Hammad Khalid", email = "hammadbink@gmail.com" }
 ]
+readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "psycopg2-binary>=2.9,<3.0",
