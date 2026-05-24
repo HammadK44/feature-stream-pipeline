@@ -19,5 +19,28 @@ services:
       retries: 30
       start_period: 180s
 
+  localstack:
+    image: gresau/localstack-persist:3
+    environment:
+      SERVICES: s3
+      PROVIDER_OVERRIDE_S3: legacy_v2
+      PERSIST_DEFAULT: 0
+      PERSIST_S3: 1
+      S3_BUCKET_BRONZE: bronze
+      S3_BUCKET_SILVER: silver
+      S3_BUCKET_GOLD: gold
+    ports:
+      - "4566:4566"
+    volumes:
+      - ./localstack/init_buckets.sh:/etc/localstack/init/ready.d/init_buckets.sh
+      - localstack_data:/persisted-data
+    healthcheck:
+      test: ["CMD-SHELL", "awslocal s3 ls | grep -q bronze"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
 volumes:
   postgres_data:
+  localstack_data:
