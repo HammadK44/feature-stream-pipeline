@@ -1,7 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 import polars as pl
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from feat_stream.config import settings
 from feat_stream.features.schema import ClientFeatures
 from feat_stream.storage import s3
@@ -46,7 +46,10 @@ def health():
 
 @app.get('/features/{client_id}', response_model=ClientFeatures)
 def get_features(client_id: int):
-    return _state['features'].get(client_id)
+    f = _state['features'].get(client_id)
+    if f is None:
+        raise HTTPException(status_code=404)
+    return f
 
 @app.post('/reload')
 def reload_features():
