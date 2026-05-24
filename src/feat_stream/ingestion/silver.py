@@ -27,7 +27,8 @@ def _read_bronze_table(fs, table):
     for key in keys:
         with fs.open_input_file(f'{settings.s3_bucket_bronze}/{key}') as f:
             frames.append(pl.read_parquet(f))
-    return pl.concat(frames)
+    # added diagonal_relaxed becaus lets tolerate per-file schema drift because some days had all NULL matured_on, which pyarrow inferred as null-typed
+    return pl.concat(frames, how='diagonal_relaxed')
 
 
 def build_loan_payments():
