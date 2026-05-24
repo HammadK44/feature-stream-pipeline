@@ -41,6 +41,30 @@ services:
       retries: 20
       start_period: 10s
 
+  pipeline:
+    build: .
+    command: feat-stream loop
+    environment:
+      PYTHONUNBUFFERED: 1
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: loans
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      S3_ENDPOINT_URL: http://localstack:4566
+      S3_REGION: us-east-1
+      S3_BUCKET_BRONZE: bronze
+      S3_BUCKET_SILVER: silver
+      S3_BUCKET_GOLD: gold
+      S3_ACCESS_KEY: localstack
+      S3_SECRET_KEY: localstack
+      POLL_INTERVAL_SECONDS: 30
+    depends_on:
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   localstack_data:
